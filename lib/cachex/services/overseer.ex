@@ -84,11 +84,18 @@ defmodule Cachex.Services.Overseer do
 
   @doc """
   Retrieves a cache record, or `nil` if none exists.
+
+  Supports per-process cache overrides for test sandboxing.
+  If a process has registered a sandbox mapping for this cache name,
+  resolve to the sandbox instance instead. This enables test isolation
+  where each test gets its own cache instance.
   """
   @spec retrieve(atom) :: Cachex.t() | nil
   def retrieve(name) do
-    case :ets.lookup(@table_name, name) do
-      [{^name, state}] ->
+    resolved = Process.get({:cachex_sandbox, name}, name)
+
+    case :ets.lookup(@table_name, resolved) do
+      [{^resolved, state}] ->
         state
 
       _other ->
